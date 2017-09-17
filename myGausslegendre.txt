@@ -1,0 +1,17 @@
+
+function v = myGausslegendre(f,xmin,xmax,d)
+	x0 = zeros(2*d);
+	function F = pointWeight(X)
+		for i = 1:2*d;
+			F(i) = rem(i,2) * 2 / i;
+			for j = 1:d;
+				% w in X(1:d); x in X(d+1:2*d)
+				F(i) = F(i) + X(j)*X(j+d)^(i-1);
+			end
+		end
+	end
+	x = fsolve(@pointWeight, x0);
+	v = 0;
+	for n = 1:d;
+		v = v + x(i)*f(x(i+d));
+	end

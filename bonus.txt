@@ -1,0 +1,16 @@
+Bonus Features
+
+1.New Player Character Race
+
+Our game has a very unique player character race named “Jeff”, who is the most powerful character in CC3K’s world. On the one hand, clients can use Jeff to conquer the world and enjoy the endless victory and happiness. On the other hand, the existence of such a boss is helpful for us to test our game (load testing). 
+To add such a class, we defined a subclass and let it inherit its superclass player. Jeff class only need to override “attack” and “attackedBy” methods, like other races do.
+
+2.Random Floor Dungeon 
+
+To enlarge the playability of our CC3K game, we enhanced our code so that clients can enjoy the randomly generated floors, which give a dungeon-like gaming experience. 
+To fulfill this, we make fives subclasses for floor whose layouts of chambers are different. Every time we construct a new level, a unique plan is selected.
+
+3.Enhanced TextDisplay
+
+After the player reaches the stair of level five, the game will end with a congratulate display. If the player’s HP reaches zero during the game, a taunting display will be presented. These are implemented in TextDisplay class.
+

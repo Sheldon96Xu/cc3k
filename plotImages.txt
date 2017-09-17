@@ -1,0 +1,121 @@
+function [ ] = plotImages( image_file)
+	% plotImages plots the image in image_file with various levels
+	%   of compression
+	%
+	% Consumed value:
+	% image_file is the name of a jpg/jpeg file in the current
+	%    folder that will be displayed with approximately 50, 80, and 95%
+	%    compression
+	orient landscape;
+	% Experiment with the values of tol50, tol80, tol95
+	% to achieve compressions rates close to 50%, 80%, and 95%
+	P = imread(image_file);
+	subplot(2,2,1);
+	image(P);
+	title(’Original Image’);
+	axis off;
+	subplot(2,2,2);
+	tol50 = 29; % You have to adjust this value
+	[cP50, comp50] = compress_image(P, tol50);
+	image(cP50);
+	title(strcat(’Compression Rate: ’,num2str(comp50)));
+	axis off;
+	subplot(2,2,3);
+	tol80 = 116; % You have to adjust this value
+	[cP80, comp80] = compress_image(P, tol80);
+	image(cP80);
+	title(strcat(’Compression Rate: ’,num2str(comp80)));
+	axis off;
+	subplot(2,2,4);
+	tol95 = 2000; % You have to adjust this value
+	[cP95, comp95] = compress_image(P, tol95);
+	image(cP95);
+	title(strcat(’Compression Rate: ’,num2str(comp95)));
+	axis off;
+end
+
+function [ P_padded ] = pad15( P )
+%pad - produces a new matrix like P, except that the number of rows and
+%columns are both multiples of 15.
+% Note that P is n x m x 3.
+% Rows and columns of 0 are added to the "end" of P, if needed.
+% save original size of P
+	[rows,columns,colours] = size(P);
+	% determine the number of "extra" rows and columns in P
+	rm15 = 0;
+	if rem(rows, 15) > 0
+		rm15 = 15 - rem(rows, 15);
+	end
+	cm15 = 0;
+	if rem(columns, 15) > 0
+		cm15 = 15 - rem(columns, 15);
+	end
+	% Add 15-rm8 rows of zeros to each of the colour matrices
+	% The number of rows in each of P1, P2, P3 is now a multiple of 8.
+	if rm15 > 0
+		P_pad(:,:,1) = [P(:,:,1);zeros(rm15,columns)];
+		P_pad(:,:,2) = [P(:,:,2);zeros(rm15,columns)];
+		P_pad(:,:,3) = [P(:,:,3);zeros(rm15,columns)];
+	else
+		P_pad = P;
+	end;
+	% Add 15-cm15 columns to the already enlarged matrices
+	% The number of columns in each of P1, P2, P3 is now a multiple of 15.
+	[rows,c1] = [size(P_pad,1),size(P_pad,2)];
+	if cm15 > 0
+		P_padded(:,:,1) = [P_pad(:,:,1),zeros(rows,cm15)];
+		P_padded(:,:,2) = [P_pad(:,:,2),zeros(rows,cm15)];
+		P_padded(:,:,3) = [P_pad(:,:,3),zeros(rows,cm15)];
+	else
+		P_padded = P_pad;
+	end
+end
+
+function [ newB, num_zeros ] = process_block( B, tol )
+	% Apply 2-d fft to the 15x15 block 
+	F = fft2(B);
+	num_zeros = 0;
+	% Discard ...
+	for i = 1:size(B,1)
+		for j = 1:size(B,2)
+			F(i,j) = uint8(real(F(i,j)));
+			if F(i,j) <= tol 
+				F(i,j) = 0;
+				num_zeros = num_zeros+1;
+			end
+		end
+	end
+	%F
+	% Apply the inverse operation to this "compressed" matrix
+	newB = ifft2(F);
+end
+
+function [ compressedP, compression_rate ] = compress_image( P, tol )
+	% save the original size of P
+	[rows,columns,colours] = size(P);
+	% Pad matrix is assist with 15x15 block processing
+	paddedP = pad15(P);
+	padded_rows = size(paddedP,1);
+	padded_columns = size(paddedP,2);
+	% initialize compressedP to all uint8 zeros.
+	compressedP = zeros(padded_rows,padded_columns,3,'unint8');
+	num_zeros = 0;
+	% for each colour
+	for colour = 1:3
+		% Divide paddedP(:,:,colour) into 15x15 blocks, processing each in term,
+		% and saving the result in compressedP.
+		rows_of_15 = padded_rows/15;
+		cols_of_15 = padded_columns/15;
+		for r = 0:rows_of_15 - 1
+			for c = 0:cols_of_15 - 1
+			    block = paddedP(15*r+1:15*r+15,15*c+1:15*c+15,colour);
+			    [modified,nz] = process_block(block,tol);
+			    num_zeros = num_zeros+nz;
+			    compressedP(15*r+1:15*r+15,15*c+1:15*c+15,colour) = modified;
+			end 
+		end
+	end
+	% Trim any extra rows and columns of P
+	compressedP = compressedP(1:rows,1:columns);
+	compression_rate = num_zeros/(padded_rows*padded_columns*3);
+end
